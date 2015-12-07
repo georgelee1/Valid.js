@@ -1,0 +1,8 @@
+/**
+ * Valid.js (1.0.0) - Simple jQuery client side form validation
+ * https://github.com/georgelee1/Valid.js
+ * 
+ * @author George Lee (www.georgelee.me)
+ * @license MIT
+ */
+input.error,textarea.error,select.error{border:1px solid #c60000;color:#c60000;font-style:normal}input.error:focus,textarea.error:focus,select.error:focus{border-color:#c60000;outline:0;-webkit-box-shadow:0 0 8px rgba(198,0,0,0.6);box-shadow:0 0 8px rgba(198,0,0,0.6)}

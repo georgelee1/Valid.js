@@ -1,0 +1,34 @@
+{
+  "name": "valid.js",
+  "version": "1.0.0",
+  "description": "Simple jQuery client side form validation",
+  "main": "index.js",
+  "dependencies": {},
+  "devDependencies": {
+    "node-sass": "^3.4.2",
+    "uglify-js": "^2.6.1"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build:scss": "node-sass --output-style compressed src/jquery.validjs.scss dist/jquery.validjs.min.css",
+    "build:js" : "uglifyjs src/jquery.validjs.js -o dist/jquery.validjs.min.js -c -m --comments", 
+    "dist": "npm run build:scss && npm run build:js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/georgelee1/Valid.js.git"
+  },
+  "keywords": [
+    "jquery",
+    "html",
+    "form",
+    "pattern",
+    "validate"
+  ],
+  "author": "George Lee",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/georgelee1/Valid.js/issues"
+  },
+  "homepage": "https://github.com/georgelee1/Valid.js"
+}

@@ -1,0 +1,26 @@
+/**
+ * Valid.js (1.0.0) - Simple jQuery client side form validation
+ * https://github.com/georgelee1/Valid.js
+ * 
+ * @author George Lee (www.georgelee.me)
+ * @license MIT
+ */
+
+$error-color: #c60000;
+
+%errored {
+   border: 1px solid $error-color;
+   color: $error-color;
+   font-style: normal;
+}
+
+input.error, textarea.error, select.error {
+   @extend %errored;
+
+   &:focus {
+      border-color: $error-color;
+      outline: 0;
+      -webkit-box-shadow: 0 0 8px rgba($error-color, 0.6);
+      box-shadow: 0 0 8px rgba($error-color, 0.6);
+   }
+}
