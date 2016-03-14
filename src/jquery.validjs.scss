@@ -14,7 +14,7 @@ $error-color: #c60000;
    font-style: normal;
 }
 
-input.error, textarea.error, select.error {
+input.validjs-error, textarea.validjs-error, select.validjs-error {
    @extend %errored;
 
    &:focus {

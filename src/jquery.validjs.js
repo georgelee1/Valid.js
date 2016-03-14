@@ -6,22 +6,6 @@
  * @license MIT
  */
 ;(function($) {
-
-   /**
-    * Polyfill.
-    * The forEach() method executes a provided function once per array element.
-    */
-   if (!Array.prototype.forEach) {
-      Array.prototype.forEach = function(callback, thisArg) {
-         if (typeof callback !== "function") {
-            throw new TypeError(callback + ' is not a function');
-         }
-         var x = 0, len = this.length, next;
-         for (; x < len; x++) {
-            callback.call(thisArg, this[x], x, this);
-         }
-      }
-   }
    
    /*
     * Map of validator functions to validate the value of the each input, called with 'this' set as the element instance. The current value
@@ -71,83 +55,6 @@
    };
    
    /**
-    * Input constructor.
-    */
-   var Input = function (element, options) {
-      this._element = element;
-      
-      this._validation = {};
-      for (var name in VALIDATORS) {
-         this._validation[name] = this._element.attr(name)
-         this._element.removeAttr(name);
-      }
-      
-      this._element.on("keyup keypress keydown", $.proxy(this._update, this, true));
-      this._element.on("focus blur paste change", $.proxy(this._update, this, false));
-      
-      this._update(false, {});
-      this._element.on("validjs.change", function(event, context) {
-         context._changed = true;
-      })
-   };
-
-   /**
-    * Update the current stored value from the HTML DOM.
-    */
-   Input.prototype._update = function(checkKeyCode, e) {
-      // To spare us having to go and get the value from the DOM every time, there are some actions
-      // that we know are not value updating key strokes. If we are one of them right now, then skip.
-      if (checkKeyCode) {
-         if (NON_UPDATING_KEY_CODES[e.which]) {
-            return;
-         }
-      }
-      
-      var v = this._element.val(),
-          prev = this._val,
-          changed = (prev || "") !== v;
-      
-      this._val = v
-      
-      if (changed) {
-         this._element.trigger("validjs.change", [this, v, prev]);
-      }
-   };
-   
-   /**
-    * Validate the current value of the input, returns true if all is valid.
-    */
-   Input.prototype._validate = function() {
-      if (this._validated && this._validated.val === this._val) {
-         return this._validated.valid;
-      }
-      
-      var valid = true;
-      
-      for (var name in this._validation) {
-         var validator = VALIDATORS[name];
-         if (typeof validator === "function") {
-            if (validator.call(this._element.get(0), this._val, this._validation[name]) === false) {
-               valid = false;
-               break;
-            }
-         }
-      }
-      
-      var previousValid = this._validated && this._validated.valid;
-      this._validated = {
-         val : this._val,
-         valid : valid
-      };
-      
-      if (previousValid !== this._validated.valid) {
-         this._element.trigger("validjs.validated", [this, valid, this._val]);
-      }
-      
-      return valid;
-   };
-   
-   /**
     * Form constructor
     */
    var Form = function (element, options) {
@@ -157,20 +64,82 @@
       this._valid = false;
       
       this._element.on("submit", $.proxy(this._submission, this));
+      this._element.on("keyup", $.proxy(this._trigger, this, true));
+      this._element.on("focus", "input,textarea,select", $.proxy(this._touch, this));
+      this._element.on("focus blur paste change", $.proxy(this._trigger, this, false));
+      this._element.on("click", "input[type=reset]", $.proxy(function() {
+         setTimeout($.proxy(this._reset, this), 1);
+      }, this));
       
-      var inputs = [],
-         form = this;
+      if (window["MutationObserver"]) {
+         var observer = new MutationObserver($.proxy(this._validate, this));
+         observer.observe(element.get(0), {
+            attributes: false,
+            characterData: false,
+            childList: true,
+            subtree: true
+         });
+      }
       
-      this._element.find("input[type!=submit][type!=reset],select,textarea").each(function() {
-         var input = $(this);
-         inputs.push(new Input(input));
-         input.on("validjs.change", $.proxy(form._validate, form));
-         input.on("validjs.validated", form._validateChangeHandler);
-      });
-      this._inputs = inputs;
-      
-      this._element.on("validjs.validated", this._validateChangeHandler);
+      this._element.on("DOMSubtreeModified", function(e) {
+         console.info(e);
+      })
    };
+   
+   /**
+    * Update the current input to mark it as touched by the user
+    */
+   Form.prototype._touch = function(event) {
+      var ele = $(event.target),
+          validjs = this._get_validjs(ele);
+      
+      if (!validjs.touched) {
+         ele.addClass("validjs-touched");
+         validjs.touched = true;
+      }
+   }
+   
+   /**
+    * Reset the form ready to start validating again
+    */
+   Form.prototype._reset = function() {
+      this._validate();
+      this._element.find("input[type!=submit][type!=reset]:not(:disabled),select:not(:disabled),textarea:not(:disabled)")
+         .removeClass("validjs-error validjs-touched")
+         .each(function() {
+            var validjs = $(this).data("validjs");
+            if (validjs) {
+               validjs.val = $(this).val();
+               validjs.cls = {};
+               validjs.touched = false;
+               validjs.valid = undefined;
+               validjs.valided = false;
+            }
+         });
+      this._element.removeClass("validjs-error");
+   }
+   
+   /**
+    * Fired on an event that can update the value of a input field
+    */
+   Form.prototype._trigger = function(filterUpdating, event) {
+      if (!filterUpdating || !NON_UPDATING_KEY_CODES[event.which]) {
+         var target = $(event.target);
+         if (!target.is("input[type!=submit][type!=reset],select,textarea")) {
+            target = target.closest("input[type!=submit][type!=reset],select,textarea");
+         }
+         if (target.length) {
+            var validjs = this._get_validjs(target, true),
+                val = target.val();
+            
+            if (validjs.val !== val) {
+               validjs.val = val;
+               validjs.validated = false;
+               this._validate();
+            }
+         }
+      }
+   }
    
    /**
     * Handles the submission of the FORM. Validates the input fields, if not prevents the form from
@@ -184,13 +153,72 @@
    };
    
    /**
+    * Get the cached Valid.js validation data for the passed element
+    */
+   Form.prototype._get_validjs = function(ele, ommitVal) {
+      var validjs = ele.data("validjs");
+      if (!validjs) {
+         validjs = {
+            val: !ommitVal ? ele.val() : "",
+            cls: {},
+            touched: false,
+            valid: undefined,
+            validated: false,
+            validation: {}
+         }
+         for (var name in VALIDATORS) {
+            var val = ele.attr(name);
+            if (typeof val !== "undefined") {
+               validjs.validation[name] = val
+               ele.removeAttr(name);
+            } else {
+               val = ele.data(name);
+               if (typeof val !== "undefined") {
+                  validjs.validation[name] = val
+                  ele.removeData(name);
+               }
+            }
+         }
+         ele.data("validjs", validjs);
+      }
+      return validjs;
+   }
+   
+   /**
     * Validates all input fields within the FORM are valid
     */
    Form.prototype._validate = function() { 
-      var valid = true;
+      var valid = true,
+          self = this;
       
-      this._inputs.forEach(function(ele) {
-         if (!ele._validate()) {
+      this._element.find("input[type!=submit][type!=reset]:not(:disabled),select:not(:disabled),textarea:not(:disabled)").each(function() {
+         var ele = $(this),
+             validjs = self._get_validjs(ele);
+         
+         if (!validjs.validated) {
+            var eleValid = true;
+            for (var name in validjs.validation) {
+               var validator = VALIDATORS[name];
+               if (typeof validator === "function") {
+                  if (validator.call(this, validjs.val, validjs.validation[name]) === false) {
+                     eleValid = false;
+                     break;
+                  }
+               }
+            }
+            validjs.validated = true;
+            validjs.valid = eleValid;
+            
+            if (validjs.valid && validjs.cls.error) {
+               ele.removeClass("validjs-error");
+               validjs.cls.error = false;
+            } else if (!validjs.valid && !validjs.cls.error && validjs.touched) {
+               ele.addClass("validjs-error");
+               validjs.cls.error = true;
+            }
+         }
+         
+         if (!validjs.valid) {
             valid = false;
          }
       });
@@ -199,54 +227,24 @@
       this._valid = valid;
       
       if (previousValid !== valid) {
-         this._element.trigger("validjs.validated", [this, valid])
+         this._element[valid ? "removeClass" : "addClass"]("validjs-error");
+         this._submitters.prop("disabled", !valid);
+         this._element.trigger("validjs.validated", [this._element.get(0), valid]);
       }
       
       return valid;
    };
    
-   
-   /**
-    * Internal listener for when an element or the form changes it's validation state.
-    */
-   Form.prototype._validateChangeHandler = function(event, context, valid, val) {
-      var e = $(context._element);
-      
-      if (context._changed) {
-         e[valid ? "removeClass" : "addClass"]("error");
-      }
-      
-      if (context._submitters) {
-         context._submitters.prop("disabled", !valid);
-      }
-   };
-   
-   /**
-    * Find any input in the document that has an validator attribute and fire up the Form validation for
-    * it's closest FORM.
-    */
-   var findBy = "";
-   for (name in VALIDATORS) {
-      if (findBy.length > 0) {
-         findBy += ","
-      }
-      
-      findBy += "input[";
-      findBy += name;
-      findBy += "],textarea[";
-      findBy += name;
-      findBy += "],select[";
-      findBy += name;
-      findBy += "]";
+   $.fn.validJs = function() {
+      return this.each(function() {
+         var ele = $(this);
+         var form = ele.data("jquery.validjs");
+         if (!form) {
+            form = new Form(ele);
+            ele.data("jquery.validjs", form);
+         }
+      });
    }
    
-   $(document).find(findBy).each(function() {
-      var ele = $(this).closest("form");
-      var form = ele.data("jquery.validjs");
-      if (!form) {
-         form = new Form(ele);
-         ele.data("jquery.validjs", form);
-      }
-   });
-
+   $(document).find("form.validjs").validJs();
 })(jQuery);

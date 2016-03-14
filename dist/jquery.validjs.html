@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+   <head>
+      <title>Valid.js</title>
+      <link rel="stylesheet" href="jquery.validjs.min.css" />
+      <style>
+         div {
+            margin-top: 5px;
+         }
+      </style>
+   </head>
+   
+   <body>
+      <h2>Valid.js</h2>
+      <form class="validjs">
+         <div><input type="text" placeholder="Required" required></input></div>
+         <div><input type="text" placeholder="Required and ^[0-9]+$" required pattern="^[0-9]+$"></input></div>
+         
+         <div>
+            <input type="reset" />
+            <input type="submit" />
+         </div>
+      </form>
+      
+      <div>
+         <h4>Add</h4>
+         <div>
+            <label>Type</label>
+            <select name="type">
+               <option value="{'type':'text'}">text</option>
+               <option value="{'type':'password'}">password</option>
+               <option value="{'type':'file'}">file</option>
+               <option value="{'type':'reset'}">reset button</option>
+               <option value="{'type':'submit'}">submit button</option>
+               <option value="{'type':'checkbox'}">checkbox</option>
+               <option value="{'type':'radio'}">radio</option>
+            </select>
+         </div>
+         <div>
+            <label>Required?</label>
+            <input type="checkbox" name="required" />
+         </div>
+         <div>
+            <label>Pattern</label>
+            <input type="text" name="pattern" />
+         </div>
+         <div>
+            <input type="submit" value="Add" id="form-add" />
+         </div>
+      </div>
+
+
+      <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.0/jquery.min.js"></script>
+      <script src="jquery.validjs.min.js"></script>
+      
+      <script type="text/javascript">
+      $(document.body).on("click", "#form-add", function() {
+         var container = $(this).parent().parent(),
+             input = $("<input />").attr(JSON.parse(container.find("[name=type]").val().split("'").join("\"")));
+             input.prop("required", container.find("[name=required]").is(":checked"))
+             input.attr("pattern", container.find("[name=pattern]").val())
+             $("<div></div>").append(input).insertBefore($("form div").last());
+      });
+      </script>
+   </body>
+</html>
