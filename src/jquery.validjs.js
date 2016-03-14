@@ -104,7 +104,7 @@
     */
    Form.prototype._reset = function() {
       this._validate();
-      this._element.find("input[type!=submit][type!=reset]:not(:disabled),select:not(:disabled),textarea:not(:disabled)")
+      this._element.find("input[type!=submit][type!=reset],select,textarea")
          .removeClass("validjs-error validjs-touched")
          .each(function() {
             var validjs = $(this).data("validjs");

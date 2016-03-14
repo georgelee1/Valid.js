@@ -41,10 +41,10 @@ You can include the CSS that comes with `Valid.js` this will add very simple sty
 
 ---
 ## Additional
-If you have a form whose subtree is dynamic then `Valid.js` will react accordingly to any DOM changes. However, this does require the user's browser to support `[MutationObserver](https://developer.mozilla.org/en-US/docs/Web/API/MutationObserver)` which natively is supported in IE11+, Chrome 26+ and Firefox 14+. Support for older browsers may be possible with a polyfill.
+If you have a `form` whose subtree is dynamic then `Valid.js` will react accordingly to any DOM changes. However, this does require the user's browser to support [`MutationObserver`](https://developer.mozilla.org/en-US/docs/Web/API/MutationObserver) which natively is supported in IE11+, Chrome 26+ and Firefox 14+. Support for older browsers may be possible with a polyfill.
 
 If you are dynamically adding new `form` elements you will have to manually initialise.
-```
+```html
    <script type="text/javascript">
       var myNewForm = $("<form></form>").addClass("validjs");
       myNewForm.appendTo(document.body);
